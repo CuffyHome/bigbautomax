@@ -356,13 +356,25 @@
         
         // Environment variables
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'bigb-automax-rewards';
-        let firebaseConfig = {};
         
+        // ----------------------------------------------------------------------
+        // ⚠️ หากต้องการให้ข้อมูลบันทึกได้ถาวรบน Github Pages
+        // ให้เอาโค้ด firebaseConfig จากเว็บไซต์ Firebase Console มาวางทับตรงนี้ ⚠️
+        // ----------------------------------------------------------------------
+        let firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // ใช้ข้อมูลฐานข้อมูลจำลองของ AI ถ้ารันในหน้านี้
         try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                // Dummy config to prevent crash if not in artifact env
-                apiKey: "dummy", authDomain: "dummy", projectId: "dummy"
-            };
+            if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
+            }
         } catch (e) {
             console.error("Error parsing firebase config", e);
         }
@@ -481,29 +493,32 @@
         // Initialize Firebase
         async function initFirebase() {
             try {
-                if(firebaseConfig.apiKey !== "dummy") {
-                    app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-                    
-                    // Authentication required before Firestore access
-                    if (typeof __initial_auth_token !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                    
-                    currentUser = auth.currentUser;
-                    console.log("Authenticated as:", currentUser.uid);
-                    
-                    // Setup real-time listener for public data
-                    setupDataListener();
-                } else {
-                    // Fallback for demo without real firebase config
-                    console.log("Running without real Firebase config. Using mock data.");
+                // ถ้ารันบน Github Pages แล้วยังไม่ได้ใส่ API Key ของตัวเอง 
+                // ให้จำลองระบบเพื่อให้กดใช้งานเพิ่มข้อมูลได้ (แต่รีเฟรชแล้วข้อมูลจะหาย)
+                if(!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY" || firebaseConfig.apiKey === "dummy") {
+                    console.log("Running in Mock Mode. Data will reset on refresh.");
                     els.tableLoading.classList.add('hidden');
+                    currentUser = { uid: 'mock-user' }; // จำลองว่ามีการเชื่อมต่อฐานข้อมูลแล้ว
                     renderTable();
+                    return;
                 }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Authentication required before Firestore access
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                currentUser = auth.currentUser;
+                console.log("Authenticated as:", currentUser.uid);
+                
+                // Setup real-time listener for public data
+                setupDataListener();
             } catch (error) {
                 console.error("Firebase init error:", error);
                 els.tableLoading.classList.add('hidden');
@@ -784,6 +799,35 @@
             els.saveCustomerBtn.disabled = true;
 
             try {
+                // 1. กรณีที่กำลังใช้ระบบจำลอง (ยังไม่ได้ต่อฐานข้อมูลของจริง)
+                if(!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY" || firebaseConfig.apiKey === "dummy") {
+                    if (docId) {
+                        const idx = customersData.findIndex(c => c.id === docId);
+                        if(idx > -1) customersData[idx] = { ...customersData[idx], ...formObj };
+                        showMessage('success', 'สำเร็จ', 'อัปเดตข้อมูล (แบบจำลอง) เรียบร้อย');
+                    } else {
+                        const isDup = customersData.some(c => c.phone === formObj.phone || c.memberId === formObj.memberId);
+                        if(isDup) {
+                            showMessage('error', 'ข้อมูลซ้ำ', 'มีเบอร์โทรศัพท์หรือรหัสสมาชิกนี้ในระบบแล้ว');
+                            els.saveCustomerBtn.innerHTML = btnOriginalHtml;
+                            els.saveCustomerBtn.disabled = false;
+                            return;
+                        }
+                        customersData.push({ id: Date.now().toString(), ...formObj, createdAt: new Date().toISOString() });
+                        showMessage('success', 'สำเร็จ', 'เพิ่มข้อมูล (แบบจำลอง) เรียบร้อย ข้อมูลจะหายหากรีเฟรชหน้า');
+                    }
+                    renderTable();
+                    closeModal();
+                    els.saveCustomerBtn.innerHTML = btnOriginalHtml;
+                    els.saveCustomerBtn.disabled = false;
+                    
+                    // คำนวณสถิติใหม่
+                    els.statTotalUsers.textContent = customersData.length;
+                    els.statTotalPoints.textContent = customersData.reduce((sum, c) => sum + Number(c.points || 0), 0).toLocaleString();
+                    return;
+                }
+
+                // 2. กรณีที่เชื่อมต่อฐานข้อมูล Firebase ของจริง
                 if (docId) {
                     // Update
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, docId);
@@ -824,6 +868,18 @@
             showMessage('confirm', 'ยืนยันการลบ', `คุณต้องการลบข้อมูลคุณ ${customer.name} ใช่หรือไม่?`, async () => {
                 if(!currentUser) return;
                 try {
+                    // กรณีใช้ระบบจำลอง
+                    if(!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY" || firebaseConfig.apiKey === "dummy") {
+                        customersData = customersData.filter(c => c.id !== id);
+                        renderTable();
+                        showMessage('success', 'สำเร็จ', 'ลบข้อมูล (แบบจำลอง) เรียบร้อยแล้ว');
+                        
+                        els.statTotalUsers.textContent = customersData.length;
+                        els.statTotalPoints.textContent = customersData.reduce((sum, c) => sum + Number(c.points || 0), 0).toLocaleString();
+                        return;
+                    }
+
+                    // กรณีใช้ฐานข้อมูลจริง
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, id);
                     await deleteDoc(docRef);
                     showMessage('success', 'สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้ว');
