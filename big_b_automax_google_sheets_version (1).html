@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big-B Automax - ระบบสะสมแต้ม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            yellow: '#fdf5e6', 
+                            darkYellow: '#fce4a8', 
+                            accent: '#f5c64c', 
+                            text: '#4a4a4a', 
+                            admin: '#2d3748' 
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #fdf5e6;
+            color: #4a4a4a;
+        }
+        /* Custom scrollbar for table */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+
+    <header class="bg-white shadow-sm py-4 sticky top-0 z-10">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-brand-accent rounded-full flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-car text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800 tracking-wide">Big-B Automax</h1>
+                    <p class="text-xs text-gray-500">Member Rewards System</p>
+                </div>
+            </div>
+            <nav>
+                <button id="navCustomerBtn" class="px-4 py-2 text-sm font-medium text-brand-text border-b-2 border-brand-accent transition-colors">สำหรับลูกค้า</button>
+                <button id="navAdminBtn" class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-brand-text border-b-2 border-transparent transition-colors">สำหรับผู้ดูแล</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+        
+        <!-- CUSTOMER VIEW -->
+        <section id="customerView" class="block animate-fade-in">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden max-w-lg mx-auto border border-brand-darkYellow/30">
+                <div class="bg-brand-darkYellow p-6 text-center">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-2">เช็กแต้มสะสม</h2>
+                    <p class="text-sm text-gray-600">กรุณากรอกเบอร์โทรศัพท์หรือรหัสสมาชิกของคุณเพื่อตรวจสอบแต้มสะสม</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="mb-4">
+                        <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ หรือ รหัสสมาชิก</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
+                            </div>
+                            <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-brand-accent focus:border-brand-accent bg-gray-50 outline-none transition-all" placeholder="เช่น 08xxxxxxxx หรือ BB001">
+                        </div>
+                    </div>
+                    <button id="checkPointsBtn" class="w-full bg-brand-accent hover:bg-yellow-500 text-gray-800 font-medium py-3 px-4 rounded-xl shadow-sm transition-all transform active:scale-[0.98]">
+                        ตรวจสอบแต้ม
+                    </button>
+
+                    <!-- Search Result Area -->
+                    <div id="searchResult" class="mt-6 hidden">
+                        <div class="border-t border-gray-100 pt-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-medium text-gray-700 text-lg">ข้อมูลสมาชิก</h3>
+                                <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"><i class="fa-solid fa-check-circle mr-1"></i>พบข้อมูล</span>
+                            </div>
+                            <div class="bg-brand-yellow rounded-xl p-4 border border-brand-darkYellow/50 relative overflow-hidden">
+                                <i class="fa-solid fa-star absolute -right-4 -top-4 text-brand-darkYellow opacity-50 text-6xl transform rotate-12"></i>
+                                <div class="relative z-10 space-y-3">
+                                    <div class="flex justify-between items-center border-b border-white/50 pb-2">
+                                        <span class="text-sm text-gray-500">รหัสสมาชิก</span>
+                                        <span id="resMemberId" class="font-medium text-gray-800">--</span>
+                                    </div>
+                                    <div class="flex justify-between items-center border-b border-white/50 pb-2">
+                                        <span class="text-sm text-gray-500">ชื่อลูกค้า</span>
+                                        <span id="resName" class="font-medium text-gray-800">--</span>
+                                    </div>
+                                    <div class="flex justify-between items-center border-b border-white/50 pb-2">
+                                        <span class="text-sm text-gray-500">เบอร์โทรศัพท์</span>
+                                        <span id="resPhone" class="font-medium text-gray-800">--</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2">
+                                        <span class="text-sm font-medium text-gray-600">แต้มสะสมทั้งหมด</span>
+                                        <div class="flex items-baseline gap-1 text-brand-accent drop-shadow-sm">
+                                            <span id="resPoints" class="text-3xl font-bold">0</span>
+                                            <span class="text-sm font-medium text-gray-600">แต้ม</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Not Found Area -->
+                    <div id="searchNotFound" class="mt-6 hidden">
+                        <div class="bg-red-50 border border-red-100 rounded-xl p-4 text-center">
+                            <i class="fa-solid fa-circle-exclamation text-red-400 text-2xl mb-2"></i>
+                            <p class="text-red-600 text-sm">ไม่พบข้อมูลสมาชิกจากข้อมูลนี้</p>
+                            <p class="text-gray-500 text-xs mt-1">กรุณาตรวจสอบเบอร์โทรศัพท์/รหัสสมาชิกอีกครั้ง หรือติดต่อแอดมิน</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN LOGIN VIEW -->
+        <section id="adminLoginView" class="hidden">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden max-w-sm mx-auto border border-gray-200">
+                <div class="bg-gray-800 p-6 text-center">
+                    <i class="fa-solid fa-lock text-white text-3xl mb-2"></i>
+                    <h2 class="text-xl font-semibold text-white">ผู้ดูแลระบบ</h2>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4">
+                        <label for="adminPin" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่านเข้าใช้งาน</label>
+                        <input type="password" id="adminPin" class="block w-full px-3 py-3 text-center tracking-widest font-mono text-lg border border-gray-300 rounded-xl focus:ring-gray-800 focus:border-gray-800 bg-gray-50 outline-none" placeholder="••••••••" maxlength="20">
+                    </div>
+                    <button id="loginBtn" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-xl shadow-sm transition-all">
+                        เข้าสู่ระบบ
+                    </button>
+                    <p id="loginError" class="text-red-500 text-xs text-center mt-3 hidden">รหัสผ่านไม่ถูกต้อง</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN DASHBOARD VIEW -->
+        <section id="adminDashboardView" class="hidden">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">จัดการข้อมูลลูกค้า (Google Sheets)</h2>
+                    <p class="text-sm text-gray-500">ระบบหลังบ้าน Big-B Automax</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="refreshDataBtn" class="text-sm text-blue-500 hover:text-blue-700 font-medium px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> โหลดข้อมูล
+                    </button>
+                    <button id="logoutBtn" class="text-sm text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors">
+                        <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> ออกจากระบบ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">สมาชิกรวม</p>
+                        <p id="statTotalUsers" class="text-xl font-bold text-gray-800">0</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-brand-yellow text-brand-accent flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">แต้มสะสมรวม</p>
+                        <p id="statTotalPoints" class="text-xl font-bold text-gray-800">0</p>
+                    </div>
+                </div>
+                <div class="col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-2 flex items-center">
+                     <div class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="adminSearch" class="block w-full pl-10 pr-3 py-2 border-none rounded-lg focus:ring-0 bg-transparent outline-none text-sm" placeholder="ค้นหาด้วยชื่อ, เบอร์โทร หรือรหัสสมาชิก...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[500px]">
+                <!-- Table Toolbar -->
+                <div class="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="font-medium text-gray-700">รายชื่อสมาชิกทั้งหมด</h3>
+                    <button id="openAddModalBtn" class="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> เพิ่มลูกค้าใหม่
+                    </button>
+                </div>
+
+                <!-- Table Container -->
+                <div class="flex-grow overflow-auto custom-scrollbar relative">
+                    <!-- Loading State -->
+                    <div id="tableLoading" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center">
+                        <i class="fa-solid fa-circle-notch fa-spin text-brand-accent text-4xl mb-3"></i>
+                        <span class="text-sm text-gray-600 font-medium" id="loadingText">กำลังเชื่อมต่อ Google Sheets...</span>
+                    </div>
+
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-white sticky top-0 shadow-sm z-0">
+                            <tr>
+                                <th class="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b">รหัสสมาชิก</th>
+                                <th class="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b">ชื่อลูกค้า</th>
+                                <th class="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b">เบอร์โทรศัพท์</th>
+                                <th class="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b text-right">แต้มสะสม</th>
+                                <th class="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b text-center w-24">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerTableBody" class="divide-y divide-gray-100">
+                            <!-- Rows -->
+                        </tbody>
+                    </table>
+                    
+                    <!-- Empty State -->
+                    <div id="tableEmpty" class="hidden flex flex-col items-center justify-center py-12 text-gray-400">
+                        <i class="fa-solid fa-folder-open text-4xl mb-3 opacity-50"></i>
+                        <p class="text-sm">ยังไม่มีข้อมูลลูกค้า</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ADD / EDIT MODAL -->
+    <div id="customerModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop transition-opacity duration-300 opacity-0"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md transform transition-all duration-300 scale-95 opacity-0 modal-content overflow-hidden">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                    <h3 id="modalTitle" class="text-lg font-semibold text-gray-800">เพิ่มลูกค้าใหม่</h3>
+                    <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form id="customerForm" class="space-y-4">
+                        <input type="hidden" id="formDocId">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสสมาชิก</label>
+                            <input type="text" id="formMemberId" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent outline-none text-sm bg-gray-50" placeholder="เช่น BB001">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อลูกค้า</label>
+                            <input type="text" id="formName" required class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent outline-none text-sm" placeholder="ชื่อ-นามสกุล">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
+                            <input type="tel" id="formPhone" required pattern="[0-9]{10}" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent outline-none text-sm" placeholder="08xxxxxxxx" maxlength="10">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">แต้มสะสม</label>
+                            <input type="number" id="formPoints" required min="0" class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-accent focus:border-brand-accent outline-none text-sm" value="0">
+                        </div>
+                    </form>
+                </div>
+                <div class="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+                    <button id="cancelModalBtn" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
+                    <button id="saveCustomerBtn" class="px-4 py-2 text-sm font-medium text-gray-800 bg-brand-accent hover:bg-yellow-500 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-save"></i> บันทึกข้อมูล
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM MESSAGE BOX -->
+    <div id="messageBox" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center transform scale-95 opacity-0 transition-all duration-200" id="messageBoxContent">
+                <div id="messageIcon" class="text-4xl mb-3"></div>
+                <h3 id="messageTitle" class="text-lg font-bold text-gray-800 mb-2"></h3>
+                <p id="messageText" class="text-sm text-gray-600 mb-6"></p>
+                <div class="flex justify-center gap-3" id="messageButtons"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // ⚠️ วาง URL ของ Google Apps Script ของคุณตรงนี้ ⚠️
+        // =========================================================================
+        const SCRIPT_URL = "YOUR_GOOGLE_SHEET_URL_HERE"; 
+        
+        // รหัสผ่านเข้าหลังบ้าน
+        const ADMIN_PIN = "bigb123"; 
+
+        // State
+        let customersData = [];
+        let isAdminLoggedIn = false;
+        let isDataLoaded = false;
+
+        // UI Elements
+        const els = {
+            navCustomerBtn: document.getElementById('navCustomerBtn'),
+            navAdminBtn: document.getElementById('navAdminBtn'),
+            customerView: document.getElementById('customerView'),
+            adminLoginView: document.getElementById('adminLoginView'),
+            adminDashboardView: document.getElementById('adminDashboardView'),
+            
+            searchInput: document.getElementById('searchInput'),
+            checkPointsBtn: document.getElementById('checkPointsBtn'),
+            searchResult: document.getElementById('searchResult'),
+            searchNotFound: document.getElementById('searchNotFound'),
+            resMemberId: document.getElementById('resMemberId'),
+            resName: document.getElementById('resName'),
+            resPhone: document.getElementById('resPhone'),
+            resPoints: document.getElementById('resPoints'),
+            
+            adminPin: document.getElementById('adminPin'),
+            loginBtn: document.getElementById('loginBtn'),
+            loginError: document.getElementById('loginError'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            refreshDataBtn: document.getElementById('refreshDataBtn'),
+            
+            customerTableBody: document.getElementById('customerTableBody'),
+            tableLoading: document.getElementById('tableLoading'),
+            loadingText: document.getElementById('loadingText'),
+            tableEmpty: document.getElementById('tableEmpty'),
+            adminSearch: document.getElementById('adminSearch'),
+            statTotalUsers: document.getElementById('statTotalUsers'),
+            statTotalPoints: document.getElementById('statTotalPoints'),
+            
+            modal: document.getElementById('customerModal'),
+            modalBackdrop: document.querySelector('.modal-backdrop'),
+            modalContent: document.querySelector('.modal-content'),
+            modalTitle: document.getElementById('modalTitle'),
+            openAddModalBtn: document.getElementById('openAddModalBtn'),
+            closeModalBtn: document.getElementById('closeModalBtn'),
+            cancelModalBtn: document.getElementById('cancelModalBtn'),
+            saveCustomerBtn: document.getElementById('saveCustomerBtn'),
+            
+            formDocId: document.getElementById('formDocId'),
+            formMemberId: document.getElementById('formMemberId'),
+            formName: document.getElementById('formName'),
+            formPhone: document.getElementById('formPhone'),
+            formPoints: document.getElementById('formPoints'),
+            
+            msgBox: document.getElementById('messageBox'),
+            msgContent: document.getElementById('messageBoxContent'),
+            msgIcon: document.getElementById('messageIcon'),
+            msgTitle: document.getElementById('messageTitle'),
+            msgText: document.getElementById('messageText'),
+            msgButtons: document.getElementById('messageButtons')
+        };
+
+        function showMessage(type, title, text, onConfirm = null) {
+            els.msgTitle.textContent = title;
+            els.msgText.textContent = text;
+            els.msgButtons.innerHTML = '';
+            
+            if (type === 'success') {
+                els.msgIcon.innerHTML = '<i class="fa-regular fa-circle-check text-green-500"></i>';
+                els.msgButtons.innerHTML = `<button class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 msg-close">ตกลง</button>`;
+            } else if (type === 'error') {
+                els.msgIcon.innerHTML = '<i class="fa-regular fa-circle-xmark text-red-500"></i>';
+                els.msgButtons.innerHTML = `<button class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 msg-close">ปิด</button>`;
+            } else if (type === 'confirm') {
+                els.msgIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-yellow-500"></i>';
+                els.msgButtons.innerHTML = `
+                    <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 msg-close">ยกเลิก</button>
+                    <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 msg-confirm">ยืนยันลบ</button>
+                `;
+            }
+
+            els.msgBox.classList.remove('hidden');
+            setTimeout(() => {
+                els.msgContent.classList.remove('scale-95', 'opacity-0');
+                els.msgContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            const closeBox = () => {
+                els.msgContent.classList.remove('scale-100', 'opacity-100');
+                els.msgContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => els.msgBox.classList.add('hidden'), 200);
+            };
+
+            els.msgBox.querySelectorAll('.msg-close').forEach(btn => btn.addEventListener('click', closeBox));
+            
+            if (onConfirm) {
+                const confirmBtn = els.msgBox.querySelector('.msg-confirm');
+                if(confirmBtn) confirmBtn.addEventListener('click', () => { onConfirm(); closeBox(); });
+            }
+        }
+
+        async function fetchFromGoogleSheet(params = {}) {
+            if(SCRIPT_URL === "YOUR_GOOGLE_SHEET_URL_HERE") {
+                return { error: true, message: "ยังไม่ได้ใส่ URL ของ Google Sheets" };
+            }
+            try {
+                const queryParams = new URLSearchParams(params).toString();
+                // เพิ่มโหมด no-cors เพื่อแก้ปัญหาบางกรณี และเพิ่มการจัดการ Error ที่ละเอียดขึ้น
+                const response = await fetch(`${SCRIPT_URL}?${queryParams}`, { redirect: "follow" });
+                
+                const textData = await response.text();
+                
+                try {
+                    // ลองแปลงข้อมูลที่ได้มาเป็น JSON
+                    const data = JSON.parse(textData);
+                    return data;
+                } catch (jsonError) {
+                    console.error("ไม่ใช่รูปแบบ JSON:", textData);
+                    return { 
+                        error: true, 
+                        message: "Google สกัดกั้นการเชื่อมต่อ (โปรดเช็กว่าตั้งค่า 'ผู้มีสิทธิ์เข้าถึง' เป็น 'ทุกคน' หรือยัง)" 
+                    };
+                }
+
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                return { error: true, message: "ไม่สามารถเชื่อมต่ออินเทอร์เน็ต หรือ URL ไม่ถูกต้อง" };
+            }
+        }
+
+        async function loadDataFromSheet() {
+            if(SCRIPT_URL === "YOUR_GOOGLE_SHEET_URL_HERE") {
+                els.tableLoading.classList.add('hidden');
+                showMessage('error', 'ระบบยังไม่สมบูรณ์', 'กรุณานำ URL จาก Google Apps Script มาใส่ในโค้ด (บรรทัด SCRIPT_URL)');
+                return;
+            }
+
+            els.tableLoading.classList.remove('hidden');
+            els.loadingText.textContent = "กำลังดึงข้อมูลจาก Sheets...";
+            
+            const data = await fetchFromGoogleSheet({ action: 'read' });
+            
+            if (data.error) {
+                showMessage('error', 'ข้อผิดพลาด', data.message || 'ไม่สามารถเชื่อมต่อ Google Sheets ได้');
+            } else {
+                customersData = Array.isArray(data) ? data : [];
+                
+                // คำนวณสถิติ
+                let totalPoints = 0;
+                customersData.forEach(c => totalPoints += parseInt(c.points || 0));
+                els.statTotalUsers.textContent = customersData.length;
+                els.statTotalPoints.textContent = totalPoints.toLocaleString();
+                
+                isDataLoaded = true;
+                renderTable();
+            }
+            els.tableLoading.classList.add('hidden');
+        }
+
+        function renderTable(searchTerm = "") {
+            els.customerTableBody.innerHTML = '';
+            
+            const filteredData = customersData.filter(c => {
+                if(!searchTerm) return true;
+                const term = searchTerm.toLowerCase();
+                return (c.name && String(c.name).toLowerCase().includes(term)) || 
+                       (c.phone && String(c.phone).includes(term)) || 
+                       (c.memberId && String(c.memberId).toLowerCase().includes(term));
+            });
+            
+            if (filteredData.length === 0) {
+                els.tableEmpty.classList.remove('hidden');
+            } else {
+                els.tableEmpty.classList.add('hidden');
+                filteredData.forEach(customer => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-brand-yellow/30 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 border-b text-sm font-medium text-gray-800">${customer.memberId || '-'}</td>
+                        <td class="py-3 px-4 border-b text-sm text-gray-600">${customer.name || '-'}</td>
+                        <td class="py-3 px-4 border-b text-sm text-gray-600 font-mono">${customer.phone || '-'}</td>
+                        <td class="py-3 px-4 border-b text-sm font-bold text-brand-accent text-right">${parseInt(customer.points || 0).toLocaleString()}</td>
+                        <td class="py-3 px-4 border-b text-center">
+                            <div class="flex justify-center gap-2">
+                                <button class="edit-btn text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded-md" data-id="${customer.id}" title="แก้ไข"><i class="fa-solid fa-pen text-xs"></i></button>
+                                <button class="delete-btn text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded-md" data-id="${customer.id}" title="ลบ"><i class="fa-solid fa-trash text-xs"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    els.customerTableBody.appendChild(tr);
+                });
+                
+                document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => openModal(e.currentTarget.dataset.id)));
+                document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => confirmDelete(e.currentTarget.dataset.id)));
+            }
+        }
+
+        function switchView(view) {
+            els.navCustomerBtn.className = "px-4 py-2 text-sm font-medium text-gray-400 hover:text-brand-text border-b-2 border-transparent transition-colors";
+            els.navAdminBtn.className = "px-4 py-2 text-sm font-medium text-gray-400 hover:text-brand-text border-b-2 border-transparent transition-colors";
+            els.customerView.classList.add('hidden');
+            els.adminLoginView.classList.add('hidden');
+            els.adminDashboardView.classList.add('hidden');
+            
+            if (view === 'customer') {
+                els.navCustomerBtn.classList.replace('text-gray-400', 'text-brand-text');
+                els.navCustomerBtn.classList.replace('border-transparent', 'border-brand-accent');
+                els.customerView.classList.remove('hidden');
+                els.searchInput.value = '';
+                els.searchResult.classList.add('hidden');
+                els.searchNotFound.classList.add('hidden');
+                // โหลดข้อมูลให้พร้อมสำหรับค้นหา
+                if(!isDataLoaded && SCRIPT_URL !== "YOUR_GOOGLE_SHEET_URL_HERE") loadDataFromSheet();
+                
+            } else if (view === 'admin') {
+                els.navAdminBtn.classList.replace('text-gray-400', 'text-brand-text');
+                els.navAdminBtn.classList.replace('border-transparent', 'border-brand-accent');
+                
+                if (isAdminLoggedIn) {
+                    els.adminDashboardView.classList.remove('hidden');
+                    if(!isDataLoaded) loadDataFromSheet();
+                } else {
+                    els.adminLoginView.classList.remove('hidden');
+                    els.adminPin.value = '';
+                    els.loginError.classList.add('hidden');
+                    els.adminPin.focus();
+                }
+            }
+        }
+
+        els.navCustomerBtn.addEventListener('click', () => switchView('customer'));
+        els.navAdminBtn.addEventListener('click', () => switchView('admin'));
+
+        els.checkPointsBtn.addEventListener('click', () => {
+            const query = els.searchInput.value.trim();
+            els.searchResult.classList.add('hidden');
+            els.searchNotFound.classList.add('hidden');
+            
+            if (!query) {
+                showMessage('error', 'ข้อมูลไม่ครบถ้วน', 'กรุณากรอกเบอร์โทรศัพท์หรือรหัสสมาชิก');
+                return;
+            }
+
+            const queryLower = query.toLowerCase();
+            const customer = customersData.find(c => 
+                (c.phone && String(c.phone).trim() === query) || 
+                (c.memberId && String(c.memberId).toLowerCase().trim() === queryLower)
+            );
+            
+            const prevText = els.checkPointsBtn.innerHTML;
+            els.checkPointsBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+            els.checkPointsBtn.disabled = true;
+            
+            setTimeout(() => {
+                els.checkPointsBtn.innerHTML = prevText;
+                els.checkPointsBtn.disabled = false;
+                
+                if (customer) {
+                    els.resMemberId.textContent = customer.memberId || '-';
+                    els.resName.textContent = customer.name || '-';
+                    els.resPhone.textContent = customer.phone || '-';
+                    els.resPoints.textContent = parseInt(customer.points || 0).toLocaleString();
+                    els.searchResult.classList.remove('hidden');
+                } else {
+                    els.searchNotFound.classList.remove('hidden');
+                }
+            }, 600);
+        });
+
+        els.searchInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') els.checkPointsBtn.click(); });
+
+        els.loginBtn.addEventListener('click', () => {
+            if (els.adminPin.value === ADMIN_PIN) {
+                isAdminLoggedIn = true;
+                switchView('admin');
+            } else {
+                els.loginError.classList.remove('hidden');
+                els.adminPin.value = '';
+                els.adminPin.focus();
+            }
+        });
+        els.adminPin.addEventListener('keypress', (e) => { if(e.key === 'Enter') els.loginBtn.click(); });
+        els.logoutBtn.addEventListener('click', () => { isAdminLoggedIn = false; switchView('admin'); });
+        els.refreshDataBtn.addEventListener('click', loadDataFromSheet);
+        els.adminSearch.addEventListener('input', (e) => renderTable(e.target.value));
+
+        function openModal(id = null) {
+            els.modal.classList.remove('hidden');
+            setTimeout(() => {
+                els.modalBackdrop.classList.remove('opacity-0');
+                els.modalContent.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+
+            if (id) {
+                els.modalTitle.textContent = 'แก้ไขข้อมูลลูกค้า';
+                const customer = customersData.find(c => c.id == id);
+                if (customer) {
+                    els.formDocId.value = customer.id;
+                    els.formMemberId.value = customer.memberId;
+                    els.formName.value = customer.name;
+                    els.formPhone.value = customer.phone;
+                    els.formPoints.value = customer.points;
+                }
+            } else {
+                els.modalTitle.textContent = 'เพิ่มลูกค้าใหม่';
+                els.formDocId.value = '';
+                let nextNum = 1;
+                if(customersData.length > 0) {
+                    const ids = customersData.map(c => parseInt((c.memberId || '').replace(/\D/g, '') || 0));
+                    nextNum = Math.max(...ids) + 1;
+                }
+                els.formMemberId.value = `BB${nextNum.toString().padStart(3, '0')}`;
+                els.formName.value = '';
+                els.formPhone.value = '';
+                els.formPoints.value = '0';
+            }
+        }
+
+        function closeModal() {
+            els.modalBackdrop.classList.add('opacity-0');
+            els.modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => els.modal.classList.add('hidden'), 300);
+        }
+
+        els.openAddModalBtn.addEventListener('click', () => openModal());
+        els.closeModalBtn.addEventListener('click', closeModal);
+        els.cancelModalBtn.addEventListener('click', closeModal);
+
+        els.saveCustomerBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const formObj = {
+                id: els.formDocId.value,
+                memberId: els.formMemberId.value.trim(),
+                name: els.formName.value.trim(),
+                phone: els.formPhone.value.trim(),
+                points: els.formPoints.value
+            };
+
+            if(!formObj.memberId || !formObj.name || !formObj.phone) {
+                showMessage('error', 'ข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            // เช็คข้อมูลซ้ำ (ยกเว้นกำลังแก้ไขตัวเอง)
+            const isDup = customersData.some(c => 
+                (String(c.phone).trim() === formObj.phone || String(c.memberId).trim().toLowerCase() === formObj.memberId.toLowerCase()) && String(c.id) !== String(formObj.id)
+            );
+            if(isDup) {
+                showMessage('error', 'ข้อมูลซ้ำ', 'มีเบอร์โทรศัพท์หรือรหัสสมาชิกนี้ในระบบแล้ว');
+                return;
+            }
+
+            const btnOriginalHtml = els.saveCustomerBtn.innerHTML;
+            els.saveCustomerBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึกลง Sheets...';
+            els.saveCustomerBtn.disabled = true;
+
+            const action = formObj.id ? 'update' : 'create';
+            const res = await fetchFromGoogleSheet({
+                action: action,
+                id: formObj.id,
+                memberId: formObj.memberId,
+                name: formObj.name,
+                phone: formObj.phone,
+                points: formObj.points
+            });
+
+            els.saveCustomerBtn.innerHTML = btnOriginalHtml;
+            els.saveCustomerBtn.disabled = false;
+
+            if(res.status === 'success') {
+                showMessage('success', 'สำเร็จ', 'บันทึกข้อมูลลง Google Sheets เรียบร้อย');
+                closeModal();
+                loadDataFromSheet(); // รีเฟรชตารางใหม่
+            } else {
+                showMessage('error', 'เกิดข้อผิดพลาด', res.message || 'ไม่สามารถบันทึกข้อมูลได้');
+            }
+        });
+
+        function confirmDelete(id) {
+            const customer = customersData.find(c => c.id == id);
+            if(!customer) return;
+
+            showMessage('confirm', 'ยืนยันการลบ', `คุณต้องการลบข้อมูลคุณ ${customer.name} ออกจาก Sheets ใช่หรือไม่?`, async () => {
+                
+                els.tableLoading.classList.remove('hidden');
+                els.loadingText.textContent = "กำลังลบข้อมูล...";
+                
+                const res = await fetchFromGoogleSheet({ action: 'delete', id: id });
+                
+                if(res.status === 'success') {
+                    showMessage('success', 'สำเร็จ', 'ลบข้อมูลเรียบร้อยแล้ว');
+                    loadDataFromSheet();
+                } else {
+                    els.tableLoading.classList.add('hidden');
+                    showMessage('error', 'เกิดข้อผิดพลาด', 'ไม่สามารถลบข้อมูลได้');
+                }
+            });
+        }
+
+        // Initialize App
+        switchView('customer');
+    </script>
+</body>
+</html>
